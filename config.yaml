@@ -1,0 +1,140 @@
+# Global attributes
+
+# paths Azure
+# data_path: '/home/cetrulin/Desktop/Andres/data/'
+# output_path: '/data/PhD/'
+# input_file_extension: '.csv'
+# zipfile_path: '/home/cetrulin/Desktop/Andres/data/raw/quantquote/1-second-level'
+# src_subdirectory: 'raw/quantquote/1-second-level/242321_csv/'
+
+
+# paths local
+#data_path: '/Users/asuarez/Downloads'
+#output_path: '/Users/asuarez/data/'
+#zipfile_path: '/Users/asuarez/Downloads' # only needed if data is compressed
+data_path: 'C:\Users\suare\OneDrive\Escritorio\data\raw\quantquote' # '/Users/asuarez/Downloads'
+output_path: 'C:\Users\suare\OneDrive\Escritorio\data\out\'
+zipfile_path: 'C:\Users\suare\OneDrive\Escritorio\data\raw\quantquote' # only needed if data is compressed
+src_subdirectory: '\242321_csv\'  # '/242321_csv/'
+input_file_extension: '.csv'
+
+# Data compressed?
+uncompress: False
+
+# Dataframe properties
+time_column: 'datetime'
+columns: ['milliseconds','open','high','low','close','volume','suspicious']
+
+# Periods and symbols to be processed
+levels: ['30min', '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
+dev_period: False  # 'DEV', 'TRAIN'  # DEV will process December 2014
+years: [2015] #,2016,2017,2018]  # for dataset = TRAIN only
+efts: [2,3] # 0,1]  # 1=NASDAQ / 0=SPY / 3=IBEX / 2= DOWJONES
+
+# Attributes for testing and merging scripts
+merging:
+
+    # -------------------------------
+    # EFT, level and period selection
+    # -------------------------------
+
+    # EFT to test/merge
+    eft: 'DOWJONES' # others:  NASDAQ, DOWJONES, S&P500, IBEX
+
+    # Desired level (select from ['30min', '15min', '5min', '1min', '30s', '15s', '10s', '5s', '1s'])
+    level: '1min'
+
+    # Period to merge under a single file (specify entire months, quarters, years for '1s', '5s+' and minute level respectively).
+    ## devset
+    #start: '2014-12-01'
+    #end: '2014-12-31'
+    ## trainset2015
+    #start: '2015-01-01'
+    #end: '2015-12-31'
+    ## trainset4y
+    start: '2015-01-01'
+    end: '2018-12-31'
+
+    # Part of the name for the output in CSV and ARFF files
+    output_subname: 'trainset4y'  # 'devset', 'trainset2015', 'trainset4y'
+
+
+    # -------------------------------
+    # Same for batch
+    # -------------------------------
+
+    # EFT to test/merge
+    efts: ['S&P500'] # others:  'NASDAQ', 'DOWJONES', 'S&P500', 'IBEX'
+
+    # Desired level (select from '30min', '15min', '5min', '1min', '30s', '15s', '10s', '5s', '1s')
+    # '30 min' for IBEX has too much dependencies for previous day, so avoid (too many missing values at the start on the first days.
+    levels: ['5min','1min','30s','15s']  # ['30min', '15min', '5min', '1min', '30s', '15s', '10s', '5s', '1s']
+
+    periods:
+        devset:
+            - '2014-12-01'
+            - '2014-12-31'
+        first:
+            - '2015-01-01'
+            - '2015-12-31'
+        second:
+            - '2016-01-01'
+            - '2016-12-31'
+        third:
+            - '2017-01-01'
+            - '2017-12-31'
+        last:
+            - '2018-01-01'
+            - '2018-12-31'
+
+    # --------------------------- ----------
+    # Columns and rows selection in dataset
+    # -------------------------------------
+
+    # To remove dependencies. It relies on the results from testing
+    # Testing results depend on the liquidity of the selected EFT, the desired level,
+    #  and the length of the windows of the indicators selected as columns.
+    #  (it should be < 1 day). be aware of the amount of time being removed.
+    # Dependencies are easily caught by the tests as for the first market hours of every files the values will be missing.
+    # 10 rows for 30min level (but testing needs to be fixed as it includes macd and last row in comparisons)
+    # 20 rows for IBEX at 15min level.
+    # 33 rows for IBEX at 5min to 1s levels (as it has different columns)
+    rows_per_day_to_remove:
+        30min:  10  # as columns are: columns30min
+        15min:  20  # as columns are: columns15min
+        5min:   33
+        1min:   33
+        30s:    33
+        15s:    33
+        10s:    33
+        5s:     33
+        1s:     33
+
+    # For 5min, 1min and second level
+    columns: ['rsi_10', 'willr_10', 'adosc_10', 'macd_macd', 'cci_10', 'mom_10','stoch_slowk', 'stoch_slowd', 'sma_5', 'sma_10', 'sma_20', 'sma_30', 'wma_5', 'wma_10', 'wma_20', 'wma_30', 'ema_5', 'ema_10', 'ema_20', 'ema_30', 'trima_5', 'trima_10', 'trima_20', 'trima_30', 'adx_10', 'bbands_upperband', 'bbands_middleband', 'bbands_lowerband', 'obv_10', 'roc_10', 'rocr_10', 'stochf_fastd', 'stochf_fastk', 'aroon_aroondown', 'aroon_aroonup', 'medprice_10', 'typprice_10', 'wclprice_10', 'atr_10', 'macdfix_macd', 'mfi_10', 'sar_10', 'ppo_10', 'volume', 'volume_t-1', 'volume_t-2', 'volume_t-3', 'volume_t-4', 'close', 'close_t-1', 'close_t-2', 'close_t-3', 'close_t-4', 'high', 'high_t-1', 'high_t-2', 'high_t-3', 'high_t-4', 'open', 'open_t-1', 'open_t-2', 'open_t-3', 'open_t-4', 'low', 'low_t-1', 'low_t-2', 'low_t-3', 'low_t-4','label']  # 'binary_label']
+
+    # For 15min level (we remove parameters with dependencies between at this level days such as macd, moving averages of 30 rows, macdfix and ppo)
+    columns15min: ['rsi_10', 'willr_10', 'adosc_10', 'cci_10', 'mom_10','stoch_slowk', 'stoch_slowd', 'sma_5', 'sma_10', 'sma_20', 'wma_5', 'wma_10', 'wma_20', 'ema_5', 'ema_10', 'ema_20', 'trima_5', 'trima_10', 'trima_20', 'adx_10', 'bbands_upperband', 'bbands_middleband', 'bbands_lowerband', 'obv_10', 'roc_10', 'rocr_10', 'stochf_fastd', 'stochf_fastk', 'aroon_aroondown', 'aroon_aroonup', 'medprice_10', 'typprice_10', 'wclprice_10', 'atr_10', 'mfi_10', 'sar_10', 'volume', 'volume_t-1', 'volume_t-2', 'volume_t-3', 'volume_t-4', 'close', 'close_t-1', 'close_t-2', 'close_t-3', 'close_t-4', 'high', 'high_t-1', 'high_t-2', 'high_t-3', 'high_t-4', 'open', 'open_t-1', 'open_t-2', 'open_t-3', 'open_t-4', 'low', 'low_t-1', 'low_t-2', 'low_t-3', 'low_t-4','label']  #  'binary_label']
+
+    # For 30min level (we remove parameters with dependencies between days at this level such as macd, moving averages of 20 and 30 rows, macdfix, adx and ppo)
+    columns30min: ['rsi_10', 'willr_10', 'adosc_10', 'cci_10', 'mom_10','stoch_slowk', 'stoch_slowd', 'sma_5', 'sma_10', 'wma_5', 'wma_10', 'ema_5', 'ema_10', 'trima_5', 'trima_10', 'bbands_upperband', 'bbands_middleband', 'bbands_lowerband', 'obv_10', 'roc_10', 'rocr_10', 'stochf_fastd', 'stochf_fastk', 'aroon_aroondown', 'aroon_aroonup', 'medprice_10', 'typprice_10', 'wclprice_10', 'atr_10', 'mfi_10', 'sar_10', 'volume', 'volume_t-1', 'volume_t-2', 'volume_t-3', 'volume_t-4', 'close', 'close_t-1', 'close_t-2', 'close_t-3', 'close_t-4', 'high', 'high_t-1', 'high_t-2', 'high_t-3', 'high_t-4', 'open', 'open_t-1', 'open_t-2', 'open_t-3', 'open_t-4', 'low', 'low_t-1', 'low_t-2', 'low_t-3', 'low_t-4','label']  # 'binary_label']
+
+
+    # ------------------
+    # Paths and Settings
+    # ------------------
+
+    # Path that contains the processed CSVs
+    src_path: '/Users/asuarez/data/analysis/quantquote/'
+
+    # Select files to be exported
+    export_csv: True  # Saved also a dataset compressed as csv.gz
+    export_arff: True
+
+    # For the conversion to ARFF 
+    java_mem: '-Xmx3074m'
+    wekadev_libpath: '/Applications/moa-release-2017.06/src/moa-2017.06-sources/lib/weka-dev-3.7.12.jar'
+
+    # For testing
+    compare_against: ['1min','30s','15s','5s']  # '15min', '5min', '1min', '30s', '15s', '10s', '15s', '10s','5s','1s'
+    compare_efts: ['NASDAQ','DOWJONES','IBEX'] # 'S&P500', 'IBEX', 'DOWJONES'
