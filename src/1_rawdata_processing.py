@@ -393,14 +393,15 @@ def read_and_merge_collection(config, dates, symbol):
 
     # Iterating through files
     for date in dates:
-
         folder_aux = str(date)[:10].replace('-', '')  # exclude time (00:00:00)  and remove dashes
         file_path = folder_aux + '/' + symbol.lower() + config['input_file_extension']
         csv_path = config['data_path'] + config['src_subdirectory'] + file_path
 
         # Only if file exists (only market days considered)
         file_check = Path(csv_path)
+        print(csv_path)
         if file_check.exists():
+            print(date)
             new_df = pd.read_csv(csv_path, sep=',', parse_dates=True, infer_datetime_format=True, header=None)
             new_df.columns = ['milliseconds', 'open', 'high', 'low', 'close', 'volume', 'suspicious']
             new_df = new_df.astype('double', copy=False)  # All values as Double

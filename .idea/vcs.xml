@@ -2,7 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Quant-Quote-Data-Preprocessing" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Quant-Quote-Data-Preprocessing" vcs="" />
     <mapping directory="$PROJECT_DIR$/../RegimeSwitchingSeriesGenerator" vcs="Git" />
   </component>
 </project>
