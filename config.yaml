@@ -26,10 +26,11 @@ time_column: 'datetime'
 columns: ['milliseconds','open','high','low','close','volume','suspicious']
 
 # Periods and symbols to be processed
-levels: ['1min'] #, '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
+levels: ['5min'] #, '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
 dev_period: False  # 'DEV', 'TRAIN'  # DEV will process December 2014
-years: [2015,2016,2017,2018]  # for dataset = TRAIN only
-efts: [0,1, 2,3] # 0,1]  # 1=NASDAQ / 0=SPY / 3=IBEX / 2= DOWJONES
+# TODO: codigo cambiado para no rellenar missing values. volver a version de git para lidiar con estos (y agregado nuevo resampling).
+years: [2020] # [2015, 2016, 2017, 2018]  # for dataset = TRAIN only
+efts: [4] # [0,1, 2,3] # 0,1]  # 1=NASDAQ / 0=SPY / 3=IBEX / 2= DOWJONES / 4=EMB
 
 # Attributes for testing and merging scripts
 merging:
@@ -39,7 +40,7 @@ merging:
     # -------------------------------
 
     # EFT to test/merge
-    eft: 'DOWJONES' # others:  NASDAQ, DOWJONES, S&P500, IBEX
+    eft: 'EMB' # others:  NASDAQ, DOWJONES, S&P500, IBEX
 
     # Desired level (select from ['30min', '15min', '5min', '1min', '30s', '15s', '10s', '5s', '1s'])
     level: '1min'
@@ -52,8 +53,10 @@ merging:
     #start: '2015-01-01'
     #end: '2015-12-31'
     ## trainset4y
-    start: '2015-01-01'
-    end: '2018-12-31'
+#    start: '2015-01-01'
+#    end: '2018-12-31'
+    start: '2020-03-06'
+    end: '2020-03-20'
 
     # Part of the name for the output in CSV and ARFF files
     output_subname: 'trainset4y'  # 'devset', 'trainset2015', 'trainset4y'
