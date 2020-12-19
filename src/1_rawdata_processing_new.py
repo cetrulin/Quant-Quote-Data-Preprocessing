@@ -362,8 +362,8 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
         quarter = str(quarter)
         start_date = year + '-01-01'
         end_date = year + '-12-31'
-        start_date = year + '-03-06'
-        end_date = year + '-03-19'  # final date -1 (20 was final for here)
+        start_date = year + '-09-01'
+        end_date = year + '-09-14'  # final date -1 (20 was final for here)
 
     # EFTs to take into account
     indexes_and_symbols = {
@@ -371,7 +371,9 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
         'NASDAQ': 'QQQ',
         'DOWJONES': 'DIA',
         'IBEX': 'EWP',
-        'EMB': 'EMB'
+        'EMB': 'EMB',
+        'XLE': 'XLE',
+        'GLD': 'GLD'
     }
 
     # select EFT to be processed
@@ -399,9 +401,14 @@ def read_and_merge_collection(config, dates, symbol):
 
     # Iterating through files
     for date in dates:
+        print(date)
         folder_aux = str(date)[:10].replace('-', '')  # exclude time (00:00:00)  and remove dashes
         file_path = folder_aux + '/table_' + symbol.lower() + config['input_file_extension']
         # file_path = folder_aux + '/' + symbol.lower() + config['input_file_extension']
+        print(config['src_subdirectory'])
+        print(folder_aux)
+        print(symbol)
+        print(config['input_file_extension'])
         csv_path = config['data_path'] + config['src_subdirectory'] + file_path
 
         # Only if file exists (only market days considered)
