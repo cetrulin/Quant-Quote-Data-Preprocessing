@@ -18,6 +18,10 @@ zipfile_path: 'C:\Users\suare\data\raw\quantquote' # only needed if data is comp
 src_subdirectory: '\order_530886\'  # '\242321_csv\'  # '/242321_csv/'
 input_file_extension: '.csv'
 
+options:
+    resample_from_close: True  # ASC 05 June 2020
+    fill_missing_values_mode: 1   # HANDLING GAPS: 0 - do nothing. 1 - standard (close as next open) 2 - ffill for all
+
 # Data compressed?
 uncompress: False
 
@@ -26,11 +30,12 @@ time_column: 'datetime'
 columns: ['milliseconds','open','high','low','close','volume','suspicious']
 
 # Periods and symbols to be processed
-levels: ['5min'] #, '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
+levels: ['1h'] # , '30min', '15min', '10min', '5min', '1min'] #, '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
 dev_period: False  # 'DEV', 'TRAIN'  # DEV will process December 2014
 # TODO: codigo cambiado para no rellenar missing values. volver a version de git para lidiar con estos (y agregado nuevo resampling).
-years: [2018] # [2015, 2016, 2017, 2018]  # for dataset = TRAIN only
-efts: [6] # [0,1, 2,3] # 0,1]  # 1=NASDAQ / 0=SPY / 3=IBEX / 2= DOWJONES / 4=EMB
+years: [2018, 2019] # [2015, 2016, 2017, 2018]  # for dataset = TRAIN only
+efts: [0] # [0,1, 2,3] # 0,1]  # 1=NASDAQ / 0=SPY / 3=IBEX / 2=DOWJONES / 4=EMB / 5=XLE / 6=GLD
+
 
 # Attributes for testing and merging scripts
 merging:

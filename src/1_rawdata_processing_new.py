@@ -482,16 +482,14 @@ def apply_corrections(df):
 
 
 # In[]:
-def resampling_data(df, end_date, level, start_date):
-    resample_from_close = True  # ASC 05 June 2020   # TODO: read from config.yaml
-    fill_missing_values = 0   # HANDLING GAPS: 0 - do nothing. 1 - standard. 2 - ffill  # todo: read from config.yaml
+def resampling_data(df, end_date, level, start_date, options):
 
     # This would be the logic for downsampling/go to minute level from seconds.
     # For seconds, when upsampling like in our quantquote data, the values will be NULL anyway
     ohlc_dict = {'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last', 'volume': 'sum'}
     # Handling missing data
     # Resample to 1 min level
-    if resample_from_close:
+    if options['resample_from_close']:
         aux = df.close.resample(level).ohlc()  # due to noise at the second level in quantquote
     else:
         aux = df.resample(level).agg(ohlc_dict)
@@ -516,7 +514,7 @@ def resampling_data(df, end_date, level, start_date):
     # Volume at 0 for missing seconds and propagate last closing price to the 4 price columns.
     df['gap'] = df.close
 
-    if fill_missing_values == 1:
+    if options['fill_missing_values'] == 1:
         # 1 if the record was a gap
         df.gap.where(df.gap.isnull(), 0, inplace=True)
         df['gap'] = df['gap'].fillna(1)
@@ -530,7 +528,7 @@ def resampling_data(df, end_date, level, start_date):
         df['timestamp'] = df.datetime.values.astype(np.int64) // 10 ** 9
 
     # Propagate all columns
-    elif fill_missing_values == 2:
+    elif options['fill_missing_values'] == 2:
         # 1 if the record was a gap
         df.gap.where(df.gap.isnull(), 0, inplace=True)
         df['gap'] = df['gap'].fillna(1)
@@ -540,7 +538,7 @@ def resampling_data(df, end_date, level, start_date):
         df['open'] = df['open'].ffill()
         df['low'] = df['low'].ffill()
         df['high'] = df['high'].ffill()
-    elif fill_missing_values == 0:
+    elif options['fill_missing_values'] == 0:
         df.dropna(inplace=True)
     df['datetime'] = df.index
     df['timestamp'] = df.datetime.values.astype(np.int64) // 10 ** 9
@@ -741,8 +739,10 @@ def create_dataset(config, level, eft_symbol, year, quarter=None, dev=False):
         run_tests_seconds(df, result_path, level, start_date, end_date)
 
     logging.info(id + '  3/8 - Sampling data at the required level and saving intermediate results')
-    df = resampling_data(df, end_date, level, start_date)
-    df.to_csv(result_filepath_preprocessed.replace(']', ']_no_missing_data'), sep=';', index=False, compression='gzip')
+    df = resampling_data(df, end_date, level, start_date, options=config['options'])
+    nan_vals_present = 'no' if config['options']['fill_missing_values_mode'] > 0 else 'with'
+    df.to_csv(result_filepath_preprocessed.replace(']', f']_{nan_vals_present}_missing_data'), sep=';',
+              index=False, compression='gzip')
     #
     # logging.info(id + '  4/8 Creating feature set: computing technical indicators and time series')
     # create_feature_set(df)
