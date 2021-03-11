@@ -348,22 +348,20 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
 
     # Declaring attributes: for '1s' and DEVSET mode, QUARTER indicates month of the year 1-12.
     # The split is done, monthly due to memory constraints
-    if dev or level == '1s':
+    if dev or level == '1s':  # 1-second level
         start_date, end_date = get_dates_month(year=year, month=quarter)
         year = str(year)
         quarter = str(quarter)
-    elif 'min' not in level:
+    elif 'h' in level:  # Hourly: 1h
+        end_date, quarter, start_date, year = get_period(quarter, year)
+    elif 'd' in level:  # Daily: 1d
+        end_date, quarter, start_date, year = get_period(quarter, year)
+    elif 'min' not in level:  # Second level but greater than 1s: 5s, 10s, 15s, 30s
         start_date, end_date = get_dates_quarter(year, quarter)
         year = str(year)
         quarter = str(quarter)
-    else:
-        # For minute-level data, get the full year
-        year = str(year)
-        quarter = str(quarter)
-        start_date = year + '-01-01'
-        end_date = year + '-12-31'
-        start_date = year + '-09-01'
-        end_date = year + '-09-14'  # final date -1 (20 was final for here)
+    else:  # Minute level: 1m, 5m, 10m, 15m, 30m
+        end_date, quarter, start_date, year = get_period(quarter, year)
 
     # EFTs to take into account
     indexes_and_symbols = {
@@ -392,6 +390,17 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
 
     return result_filepath_processed, result_filepath_preprocessed, result_path, \
         symbol, year, quarter, dates, end_date, start_date, id
+
+
+def get_period(quarter, year):
+    # For minute-level data or hourly, get the full year
+    year = str(year)
+    quarter = str(quarter)
+    start_date = year + '-01-01'
+    end_date = year + '-12-31'  # final date -1 (20 was final for here)
+    # start_date = year + '-09-01'
+    # end_date = year + '-09-14'  # final date -1 (20 was final for here)
+    return end_date, quarter, start_date, year
 
 
 # In[]:
@@ -703,7 +712,7 @@ def plot_prices_and_volumes(quarter, result_path, symbol, year, df, level):
 
 
 # In[ ]:
-def create_dataset(config, level, selected, year, quarter=None, dev=False):
+def create_dataset(config, level, eft_symbol, year, quarter=None, dev=False):
     """
     This is the main function of the script. For each period, it collects files from raw csvs and creates the dataset.
     """
@@ -711,15 +720,15 @@ def create_dataset(config, level, selected, year, quarter=None, dev=False):
     # Define paths and parameter values
     result_filepath_processed, result_filepath_preprocessed, result_path, \
         symbol, year, quarter, dates, \
-        end_date, start_date, id = define_global_settings(config['output_path'], quarter, selected, year, level, dev)
+        end_date, start_date, id = define_global_settings(config['output_path'], quarter, eft_symbol, year, level, dev)
 
     logging.info(id + '  1/8 - Putting together and cleaning dataset')
 
     # @ asuarez: Comment about the design choice:
     # It would be interesting to compute indicators and labels for every single day and then merge the subsets.
     # Although this wouldn't work in terms of corrections in the dataset or duplicates,
-    # in quantquote the data is clean already.
-    # Futhermore, a a real online incremental trading system wouldn't be able to apply the corrections and
+    # in Quantquote the data is clean already.
+    # Furthermore, a a real online incremental trading system wouldn't be able to apply the corrections and
     # it would have to deal with the noise as it is.
     # At the end I left it as it is because I can always delete the rows afterwards.
     df = read_and_merge_collection(config, dates, symbol)
@@ -765,9 +774,14 @@ def iterate_through_periods(eft, lvl, years, n_periods, config):
         logging.info('-----------')
         logging.info('Year: ' + str(yr))
         for p in range(n_periods):
-            logging.info('Starting ' + ('month' if lvl == '1s' else 'quarter' if 'min' not in lvl else 'iteration') +
-                         ':' + str((p + 1)))
-            create_dataset(config=config, level=lvl, selected=eft, year=yr, quarter=None if 'min' in lvl else p + 1)
+            if (lvl == '1h') | (lvl == '1d'):
+                periods = 'yearly'
+            else:
+                periods = 'month' if lvl == '1s' else 'quarter' if 'min' not in lvl else 'iteration'
+
+            logging.info(f'Starting {periods}: {str((p + 1))}')
+            create_dataset(config=config, level=lvl, eft_symbol=eft, year=yr,
+                           quarter=None if ('min' in lvl) | ('h' in lvl) else p + 1)
 
 
 # In[ ]:
@@ -785,7 +799,6 @@ def compute():
         print(uncompress_src(config['zipfile_path']))  # TODO. remove folders at the end
 
     for eft in config['efts']:
-
         logging.info('--------------------------')
         logging.info('--------------------------')
         logging.info('')
@@ -804,6 +817,8 @@ def compute():
                 # Train & test
                 # For second level, iterate for every quarter. Monthly for 1s level due to memory related issues
                 n_periods = 12 if lvl == '1s' else 4 if 'min' not in lvl else 1
+                if (lvl == '1h') | (lvl == '1d'):
+                    n_periods = 1
                 iterate_through_periods(eft, lvl, config['years'], n_periods, config)
 
 
