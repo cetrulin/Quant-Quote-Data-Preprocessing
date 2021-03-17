@@ -514,7 +514,7 @@ def resampling_data(df, end_date, level, start_date, options):
     # Volume at 0 for missing seconds and propagate last closing price to the 4 price columns.
     df['gap'] = df.close
 
-    if options['fill_missing_values'] == 1:
+    if options['fill_missing_values_mode'] == 1:
         # 1 if the record was a gap
         df.gap.where(df.gap.isnull(), 0, inplace=True)
         df['gap'] = df['gap'].fillna(1)
@@ -528,7 +528,7 @@ def resampling_data(df, end_date, level, start_date, options):
         df['timestamp'] = df.datetime.values.astype(np.int64) // 10 ** 9
 
     # Propagate all columns
-    elif options['fill_missing_values'] == 2:
+    elif options['fill_missing_values_mode'] == 2:
         # 1 if the record was a gap
         df.gap.where(df.gap.isnull(), 0, inplace=True)
         df['gap'] = df['gap'].fillna(1)
@@ -538,7 +538,7 @@ def resampling_data(df, end_date, level, start_date, options):
         df['open'] = df['open'].ffill()
         df['low'] = df['low'].ffill()
         df['high'] = df['high'].ffill()
-    elif options['fill_missing_values'] == 0:
+    elif options['fill_missing_values_mode'] == 0:
         df.dropna(inplace=True)
     df['datetime'] = df.index
     df['timestamp'] = df.datetime.values.astype(np.int64) // 10 ** 9
