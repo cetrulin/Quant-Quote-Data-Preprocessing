@@ -489,8 +489,10 @@ def resampling_data(df, end_date, level, start_date, options):
     ohlc_dict = {'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last', 'volume': 'sum'}
     # Handling missing data
     # Resample to 1 min level
-    if options['resample_from_close']:
-        aux = df.close.resample(level).ohlc()  # due to noise at the second level in quantquote
+    if options['resample_from_close']:  # should be 0 as default
+        # aux = df.close.resample(level).ohlc()  # due to noise at the second level in quantquote (this excludes volume)
+        aux = df.resample(level, {'close': 'ohlc', 'volume': 'sum'})
+        aux.columns = [col[1] for col in aux.columns]
     else:
         aux = df.resample(level).agg(ohlc_dict)
 
