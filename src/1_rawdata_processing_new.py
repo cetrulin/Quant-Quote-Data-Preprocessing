@@ -412,7 +412,7 @@ def read_and_merge_collection(config, dates, symbol):
     for date in dates:
         print(date)
         folder_aux = str(date)[:10].replace('-', '')  # exclude time (00:00:00)  and remove dashes
-        file_path = folder_aux + '/table_' + symbol.lower() + config['input_file_extension']
+        file_path = folder_aux + os.sep + config['file_prefix'][config['src_subdirectory'].replace('\\', '')] + symbol.lower() + config['input_file_extension']
         # file_path = folder_aux + '/' + symbol.lower() + config['input_file_extension']
         print(config['src_subdirectory'])
         print(folder_aux)
@@ -426,8 +426,7 @@ def read_and_merge_collection(config, dates, symbol):
         if file_check.exists():
             print(date)
             new_df = pd.read_csv(csv_path, sep=',', parse_dates=True, infer_datetime_format=True, header=None)
-            # new_df.columns = ['milliseconds', 'open', 'high', 'low', 'close', 'volume', 'suspicious']
-            new_df.columns = ['date', 'milliseconds', 'open', 'high', 'low', 'close', 'volume', 'suspicious', 'Dividends', 'Extrapolation']
+            new_df.columns = config['file_columns'][config['src_subdirectory'].replace('\\', '')]
             # new_df['datetime'] = pd.Timestamp(date)  # Get date from foldername
             # new_df['datetime'] = new_df.date + ' T' + new_df.time
             print(new_df['milliseconds'].head(5))
@@ -437,7 +436,7 @@ def read_and_merge_collection(config, dates, symbol):
 
             new_df = new_df.astype('double', copy=False)  # All values as Double
             new_df['datetime'] = pd.Timestamp(date)
-            new_df.drop(columns=['Dividends', 'Extrapolation', 'date'], axis=1, inplace=True)
+            new_df.drop(columns=['Dividends', 'Extrapolation', 'date'], axis=1, errors='ignore', inplace=True)
             dataframes.append(new_df)
 
     # concat all dataframes in a single one

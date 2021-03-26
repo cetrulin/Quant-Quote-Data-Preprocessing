@@ -15,7 +15,13 @@
 data_path: 'C:\Users\suare\data\raw\quantquote' # '/Users/asuarez/Downloads'
 output_path: 'C:\Users\suare\data\'
 zipfile_path: 'C:\Users\suare\data\raw\quantquote' # only needed if data is compressed
-src_subdirectory: '\order_530886\'  # '\242321_csv\'  # '/242321_csv/'
+src_subdirectory: '\242321_csv\' # '\order_530886\'  # '\242321_csv\'
+file_prefix:
+    242321_csv: ''           # no prefix for 1 sec level orders
+    order_530886: 'table_'   # for 1 min level
+file_columns:
+    242321_csv: ['milliseconds', 'open', 'high', 'low', 'close', 'volume', 'suspicious']  # at sec level
+    order_530886: ['date', 'milliseconds', 'open', 'high', 'low', 'close', 'volume', 'suspicious', 'Dividends', 'Extrapolation']
 input_file_extension: '.csv'
 
 options:
@@ -30,10 +36,10 @@ time_column: 'datetime'
 columns: ['milliseconds','open','high','low','close','volume','suspicious']
 
 # Periods and symbols to be processed
-levels: ['1h', '30min', '15min', '10min', '5min', '1min'] #, '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
+levels: ['1h', '30min', '15min', '10min', '5min', '1min', '30s', '15s', '10s', '5s', '1s'] #, '15min', '5min', '1min', '30s', '15s'] # , '10s', '5s', '1s']
 dev_period: False  # 'DEV', 'TRAIN'  # DEV will process December 2014
 # TODO: codigo cambiado para no rellenar missing values. volver a version de git para lidiar con estos (y agregado nuevo resampling).
-years: [2008, 2009, 2010] # [2015, 2016, 2017, 2018]  # for dataset = TRAIN only
+years: [2018, 2019, 2020, 2017, 2016, 2015] # [2008, 2009, 2010] # [2015, 2016, 2017, 2018]  # for dataset = TRAIN only
 efts: [0] # [0,1, 2,3] # 0,1]  # 1=NASDAQ / 0=SPY / 3=IBEX / 2=DOWJONES / 4=EMB / 5=XLE / 6=GLD
 
 
