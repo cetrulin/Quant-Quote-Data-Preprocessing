@@ -275,8 +275,7 @@ def run_tests_seconds(df, result_path, level, start_date, end_date):
 
     # Second check to see if there are any gaps
     ohlc_dict = {'close': 'last', 'high': 'max', 'low': 'min', 'open': 'first', 'volume': 'sum'}
-    test = df.resample('1s').agg(
-        ohlc_dict)  # This will create rows with NaN values if there are any minutes missing in the timerange
+    test = df.resample(level).agg(ohlc_dict)  # This will create rows with NaN values if there are any minutes missing in the timerange
     test = test[(test.index > start_date) & (test.index <= end_date + " 23:59:59")]
     list_of_days = df.datetime.dt.date.unique()
     test['datetime'] = test.index.date
@@ -351,7 +350,7 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
     # The split is done, monthly due to memory constraints
     print(f'The level is: {level}')
 
-    if dev or 's' in level: # monthly for all sec level due to lack of RAM in Windows # level == '1s':  # 1-second level
+    if dev or level == '1s':  #'s' in level: # monthly for all sec level due to lack of RAM in Windows # level == '1s':  # 1-second level
         start_date, end_date = get_dates_month(year=year, month=quarter)
         year = str(year)
         quarter = str(quarter)
@@ -458,7 +457,7 @@ def read_and_merge_collection(config, dates, symbol):
 def apply_corrections(df):
     # Parse datetime at 00:00 to timestamp and multiply by 1000 to have milliseconds.
     # Then add raw timestamp with milliseconds from 00:00
-    df['timestamp'] = ((df.datetime.values.astype(np.int64) // 10 ** 9) * 1000) + df.milliseconds
+    df['timestamp'] = ((df.datetime.values.astype(np.int64) // 10 ** 9) * 1000) + df.milliseconds/1000
     # Timestamp in milliseconds to readable datetime
     df['timestamp_r'] = pd.to_datetime(df.timestamp, unit='ms')
     # Index dataframe by its actual readable timestamp and sort it
