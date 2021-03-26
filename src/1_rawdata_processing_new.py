@@ -247,7 +247,8 @@ def run_tests_minutes(df, result_path, level, start_date, end_date):
 
 def run_tests_seconds(df, result_path, level, start_date, end_date):
     # Testing the dataset (TO-DO: use a proper unit testing library)
-    file = open(result_path + 'Tests_EFT' + level + '-level_' + '[' + start_date + '-' + end_date + '].txt', "w")
+    os.makedirs(result_path, exist_ok=True)  # succeeds even if directory exists.
+    file = open(result_path + f'Tests_EFT{level}-level_[{start_date}-{end_date}].txt', "w")
 
     # First check to see if there are any gaps or duplicates.
     # The number of rows must be:
@@ -348,7 +349,9 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
 
     # Declaring attributes: for '1s' and DEVSET mode, QUARTER indicates month of the year 1-12.
     # The split is done, monthly due to memory constraints
-    if dev or level == '1s':  # 1-second level
+    print(f'The level is: {level}')
+
+    if dev or 's' in level: # monthly for all sec level due to lack of RAM in Windows # level == '1s':  # 1-second level
         start_date, end_date = get_dates_month(year=year, month=quarter)
         year = str(year)
         quarter = str(quarter)
@@ -357,6 +360,7 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
     elif 'd' in level:  # Daily: 1d
         end_date, quarter, start_date, year = get_period(quarter, year)
     elif 'min' not in level:  # Second level but greater than 1s: 5s, 10s, 15s, 30s
+        # print('GETTING QUARTER!')
         start_date, end_date = get_dates_quarter(year, quarter)
         year = str(year)
         quarter = str(quarter)
@@ -410,26 +414,26 @@ def read_and_merge_collection(config, dates, symbol):
 
     # Iterating through files
     for date in dates:
-        print(date)
+        # print(date)
         folder_aux = str(date)[:10].replace('-', '')  # exclude time (00:00:00)  and remove dashes
-        file_path = folder_aux + os.sep + config['file_prefix'][config['src_subdirectory'].replace('\\', '')] + symbol.lower() + config['input_file_extension']
+        file_path = folder_aux + os.sep + config['file_prefix'][config['order']] + symbol.lower() + config['input_file_extension']
         # file_path = folder_aux + '/' + symbol.lower() + config['input_file_extension']
-        print(config['src_subdirectory'])
-        print(folder_aux)
-        print(symbol)
-        print(config['input_file_extension'])
+        # print(config['src_subdirectory'])
+        # print(folder_aux)
+        # print(symbol)
+        # print(config['input_file_extension'])
         csv_path = config['data_path'] + config['src_subdirectory'] + file_path
 
         # Only if file exists (only market days considered)
         file_check = Path(csv_path)
-        print(csv_path)
+        # print(csv_path)
         if file_check.exists():
             print(date)
             new_df = pd.read_csv(csv_path, sep=',', parse_dates=True, infer_datetime_format=True, header=None)
-            new_df.columns = config['file_columns'][config['src_subdirectory'].replace('\\', '')]
+            new_df.columns = config['file_columns'][config['order']]
             # new_df['datetime'] = pd.Timestamp(date)  # Get date from foldername
             # new_df['datetime'] = new_df.date + ' T' + new_df.time
-            print(new_df['milliseconds'].head(5))
+            # print(new_df['milliseconds'].head(5))
 
             # parsing hardcoded integers hh:mm to milliseconds
             new_df['milliseconds'] = new_df['milliseconds'].apply(lambda x: (int(str(x)[:-2])*60 + int(str(x)[-2:]))*60 * 1000)
@@ -794,6 +798,7 @@ def compute():
 
     # Creating a global dictionary of functions for every technical indicator
     define_indicators()
+    config['order'] = config['src_subdirectory'].replace('\\', '')
 
     # If data needs to be unzipped, do it
     if config['uncompress']:
@@ -806,7 +811,8 @@ def compute():
         logging.info('PROCESSING EFT: '+str(eft))
         logging.info('')
 
-        for lvl in config['levels']:
+        # diff levels for sec freq or min freq orders
+        for lvl in config['levels'][config['order']]:
             logging.info('###############')
             logging.info('###############')
             logging.info('Level: '+lvl)
@@ -820,7 +826,7 @@ def compute():
                 n_periods = 12 if lvl == '1s' else 4 if 'min' not in lvl else 1
                 if (lvl == '1h') | (lvl == '1d'):
                     n_periods = 1
-                iterate_through_periods(eft, lvl, config['years'], n_periods, config)
+                iterate_through_periods(eft, lvl, config['years'][config['order']], n_periods, config)
 
 
 if __name__ == '__main__':
