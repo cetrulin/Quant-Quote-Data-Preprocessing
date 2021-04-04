@@ -69,9 +69,9 @@ def get_pretraining_states(mahabset_df: pd.DataFrame, config: dict) -> dict:
         # mahabset_df['close_returns'] = mahabset_df['close'].pct_change(1)  # same result
     mahabset_df.dropna(inplace=True)
     sma_col = f"SMA_{config['desired_length']}"
-    mahabset_df[sma_col] = \
-        mahabset_df['close_returns'].rolling(window=config['desired_length']).mean()
+    mahabset_df[sma_col] = mahabset_df['close_returns'].rolling(window=config['desired_length']).mean()
     mahabset_df[sma_col+'_abs'] = mahabset_df[sma_col].abs()
+    mahabset_df['roll_std'] = mahabset_df['close_returns'].rolling(window=config['desired_length']).std()
     mahabset_df['SMA_start_date'] = mahabset_df[config['dt_field']].shift(config['desired_length'])
     mahabset_df['SMA_start_ms'] = mahabset_df[config['ms_field']].shift(config['desired_length'])
 
@@ -107,9 +107,10 @@ def identify_state(config: dict, mahabset_df: pd.DataFrame, sma_col: str, state_
     if state_id == 1:  # Select one close to 0 (the closest)
         # Select one close to 0
         # (not the closest cos there are period = 0 due to lack of liquidity at certain frequencies)
-        # Filter by desired mean fpr the lateral movement (we'll get the maximum inside a range)
         selected_df = mahabset_df[mahabset_df[sma_col + '_abs'] <= config['desired_abs_mean_tresh']]
-        selected_df = selected_df[selected_df[sma_col + '_abs'].max() == selected_df[sma_col + '_abs']]
+        # selected_df = selected_df[selected_df[sma_col + '_abs'].max() == selected_df[sma_col + '_abs']]
+        # Filter by desired mean fpr the lateral movement (the one with greatest STDEV)
+        selected_df = selected_df[selected_df['roll_std'].max() == selected_df['roll_std']]
     elif state_id == 2:  # Select one negative (min)
         selected_df = mahabset_df[mahabset_df[sma_col].min() == mahabset_df[sma_col]]
     elif state_id == 3:  # Select one positive (max)
@@ -122,10 +123,13 @@ def identify_state(config: dict, mahabset_df: pd.DataFrame, sma_col: str, state_
 def remove_non_trading_hours(df, config: dict()) -> pd.DataFrame:
     # Parse cols, dates and sort
     # this may be useful at minute level
-    df['date'] = pd.to_datetime(df['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
-    df['time'] = (pd.to_datetime(df['time'].astype(str).str.strip(), format='%H%M').dt.strftime('%H:%M'))
-    df['datetime'] = df.date.astype(str) + ' ' + df.time.astype(str)
-    trading_dates = df.datetime.str[:10].unique()  # list of market days
+    # df['date'] = pd.to_datetime(df['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
+    # df['time'] = (pd.to_datetime(df['time'].astype(str).str.strip(), format='%H%M').dt.strftime('%H:%M'))
+    # df['datetime'] = df.date.astype(str) + ' ' + df.time.astype(str)
+    # trading_dates = df.datetime.str[:10].unique()  # list of market days
+    trading_dates = pd.read_csv('trading_dates_Q11998_to_Q32021.csv')  # this list has format: dd/MM/yyyy
+    # inverting date format (hardcoded)
+    trading_dates = trading_dates.trading_dates.astype(str).apply(lambda x: x[6:10]+'-'+x[3:5]+'-'+x[:2])
     df.index = pd.to_datetime(df.datetime)
     df.drop(columns=['date', 'time', 'datetime', 'splits', 'earnings', 'dividends'],
             errors='ignore', inplace=True)
@@ -156,24 +160,25 @@ def remove_non_trading_hours(df, config: dict()) -> pd.DataFrame:
     return df
 
 
-def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict) -> list():
+def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict, all_files: list()) -> list():
     file_path = file_dict[setid]
     if setid == 'mah':
         # For the mahalanobis set, it creates a moving average of x examples over the previous period to the devset.
         states_dict = \
-            get_pretraining_states(df=pd.read_csv(files[period][level][setid], sep=config['separator']), config=config)
-        for k in states.keys():
+            get_pretraining_states(mahabset_df=pd.read_csv(files[period][level][setid], sep=config['separator']),
+                                   config=config)
+        for k in states_dict.keys():
             state_filepath = \
                 os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}_{k}.csv'])
-            states_dict[k] = remove_non_trading_hours(df=states[k], config=config)
+            states_dict[k] = remove_non_trading_hours(df=states_dict[k], config=config)
             states_dict[k].to_csv(state_filepath, sep=';')
-            files_for_indicators.append(state_filepath)
+            all_files.append(state_filepath)
     else:
         set_filepath = os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}.csv'])
         df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config)
         df.to_csv(set_filepath)
-        files_for_indicators.append(set_filepath)
-    return files_for_indicators
+        all_files.append(set_filepath)
+    return all_files
 
 
 period_id = 1
@@ -228,11 +233,7 @@ for yr in config['years_to_explore']:
 
         period_id = period_id + 1
 
-print(files_for_indicators)
-# TODO output files_for_indicators to file
-files_for_indicators.export()
-
+# Let's generate /txt files too in a TMP location
+pd.DataFrame({'files': files_for_indicators}).to_csv('tmp/files_for_indicators.csv')
 # Then trigger from here the whole convertion (technical indicators).
-# TODO: Let's make it a file that can be imported.
-# Let's generate /txt files too in that lcocation
 
