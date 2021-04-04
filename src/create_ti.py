@@ -44,8 +44,8 @@ def create_arff_file(filename: str, output=None):
         output = output.replace('.csv', '')
     wekadev_libpath = 'C:\\Users\\suare\\Workspace\\phd_cetrulin\\moa-2017.06-sources\\lib\\weka-dev-3.7.12.jar'
     command = ['java', java_mem, '-classpath', wekadev_libpath,
-               'weka.core.converters.CSVLoader', filename + '.csv', '>', output + '.arff']
-    f = open(filename + '.arff', "w")
+               'weka.core.converters.CSVLoader', filename + '.csv', '>', output.replace('_ind', '') + '.arff']
+    f = open(filename.replace('_ind', '') + '.arff', "w")
     subprocess.call(command, stdout=f)
     print('If the arff is not generated, run the next in the terminal.')
     print(str(' '.join(command)))
@@ -70,29 +70,30 @@ indicators = ['sma','ema','wma','mom','stoch','macd' ,'rsi' ,'willr',
 sources = ['S&P500']
 # levels = ['1min-level', '5min-level', '10min-level', '15min-level', '30min-level', '1h-level']  # TODO
 levels = ['1s-level', '5s-level', '10s-level', '15s-level', '30s-level']
-modes = ['indicators_best', 'indicators_best_and_times', 'indicators_fullset']
+modes = ['', 'indicators_best_and_times', 'indicators_fullset']  #  == 'indicators_best'
 # sets = ['mahalanobis', 'dev', 'train'] #'mahalanobis', 'dev'] #, 'train']  # dates hardcoded later.
 
+
 # Paths for symbols
-RESULT_PATH=os.sep.join(['C:','Users','suare','PycharmProjects','RegimeSwitchingSeriesGenerator','output'])
-devsets_path = 'C:\\Users\\suare\\Workspace\\phd_cetrulin\\moa-2017.06-sources\\data\\real\\spy_final_2021_staging_area\\'
-input_path = os.sep.join(['C:','Users','suare','data', 'raw', 'quantquote', 'minutes'])
+RESULT_PATH = os.sep.join(['C:', 'Users', 'suare', 'PycharmProjects', 'QuantQuoteDataPreprocessing', 'out'])
+devsets_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
+input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
 
-
-files_for_indicators = list()
-load(files_for_indicators)  #  exported file from other script
-
+# Load files from TMP folder
+files_for_indicators = list(pd.read_csv('tmp/files_for_indicators.csv').files)
 
 for mode in modes:
     for file in files_for_indicators:
+        level, period, setname = file.split(os.sep)[-3:]
+        setname = setname.replace('.csv', '')
         #         for level in levels:
         #         for dataset in sets:
         #           filename = file.replace(SOURCE_PATH+os.sep,'')
         filename = file.split(os.sep)[-1]
-        FIELD = 'close' # price->'ts' returns->'ret_ts' ts_with_added_noise-> 'ts_n2_post'
+        FIELD = 'close'  # price->'ts' returns->'ret_ts' ts_with_added_noise-> 'ts_n2_post'
         print(f'Start {filename}')
         RESULT_FILEPATH_PROCESSED = \
-            os.sep.join([RESULT_PATH, filename.split(os.sep)[-1].replace('.csv', '')+f'{mode}.csv'])
+            os.sep.join([RESULT_PATH, level, period, filename.split(os.sep)[-1].replace('.csv', '')+f'{mode}_ind.csv'])
 
         # Open file
         df = pd.read_csv(file, sep=';')
@@ -166,7 +167,7 @@ for mode in modes:
         #     df.sample(50).plot.scatter('sin_dow','cos_dow').set_aspect('equal');
 
         # Select columns for output
-        if mode == 'indicators_best':
+        if mode == '':  # == 'indicators_best'  # left as blank to be the default option and generate the desired name
             # best pool found through indicators grid search script
             columns_selected = ['rsi_10','willr_10','macd_macd','cci_10','mom_10','stoch_slowk','stoch_slowd',
                                 'sma_5','sma_10', 'wma_10','ema_10','trima_10','adx_10',
@@ -212,12 +213,14 @@ for mode in modes:
         print('===========================')
         print('===========================')
         output = pd.DataFrame(df, columns=columns_selected)  # [df['datetime'] >= '2017-09-25 14:07:00']
-        output.to_csv(RESULT_FILEPATH_PROCESSED, sep=',', encoding='utf-8', index = False)
+        Path(os.sep.join(RESULT_FILEPATH_PROCESSED.split(os.sep)[:-1])).mkdir(parents=True, exist_ok=True)
+        output.to_csv(RESULT_FILEPATH_PROCESSED, sep=',', encoding='utf-8', index=False)
+        # export in ARFF
         create_arff_file(RESULT_FILEPATH_PROCESSED,
-                         output=devsets_path+RESULT_FILEPATH_PROCESSED.split(os.sep)[-1]) # export in ARFF
+                         output=os.sep.join([devsets_path, level, period, RESULT_FILEPATH_PROCESSED.split(os.sep)[-1]]))
 
         # Now plot close price and volume overtime.
-        df.set_index('datetime',drop=True).plot(y=["close_t-1"], figsize=(18,6))
+        df.set_index('datetime', drop=True).plot(y=["close_t-1"], figsize=(18,6))
         plt.show()
 
         print(f'Number of instances: {len(df)}')
@@ -241,7 +244,7 @@ for file in os.listdir(devsets_path):
     #         for sf in seed_files:
     if '.arff' in file:  # sf:
         #                 full_path = os.sep.join([devsets_path, file, sf])
-        full_path = os.sep.join([devsets_path, file]).replace('C:\\Users\\suare\\Workspace\\phd_cetrulin\\',
-                                                              '/mnt/c/Users/suare/Workspace/phd_cetrulin/').replace('\\','/')
+        full_path = \
+            os.sep.join([devsets_path, file]).replace('C:\\Users\\suare', '/mnt/c/Users/suare').replace('\\','/')
         #                 print(full_path)
         print("sed -i 's/^.*@attribute label numeric.*$/@attribute label {0, 1}/' " + full_path)
