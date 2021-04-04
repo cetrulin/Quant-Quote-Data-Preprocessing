@@ -176,7 +176,7 @@ def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict, all_
     else:
         set_filepath = os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}.csv'])
         df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config)
-        df.to_csv(set_filepath)
+        df.to_csv(set_filepath, sep=';')
         all_files.append(set_filepath)
     return all_files
 
