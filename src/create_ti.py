@@ -85,6 +85,7 @@ files_for_indicators = list(pd.read_csv('tmp/files_for_indicators.csv').files)
 for mode in modes:
     for file in files_for_indicators:
         level, period, setname = file.split(os.sep)[-3:]
+        # if (int(period) > 1) & (level == '1s-level') & ('mahalanobis' in setname):
         setname = setname.replace('.csv', '')
         #         for level in levels:
         #         for dataset in sets:
@@ -204,7 +205,9 @@ for mode in modes:
         # removing records that may look at pre-market or at the previous date
         df.datetime = pd.to_datetime(df.datetime)
         df.set_index('datetime', drop=True, inplace=True)
-        df = df.between_time('10:05', '15:58').reset_index()
+        if 'm-level' in level:
+            # only applicable to min level as for sec level we could use so many rows before...
+            df = df.between_time('10:05', '15:58').reset_index()
 
         # Export processed data
         print(df.head())
@@ -220,7 +223,8 @@ for mode in modes:
                          output=os.sep.join([devsets_path, level, period, RESULT_FILEPATH_PROCESSED.split(os.sep)[-1]]))
 
         # Now plot close price and volume overtime.
-        df.set_index('datetime', drop=True).plot(y=["close_t-1"], figsize=(18,6))
+        # df.set_index('datetime', drop=True, inplace=False)\
+        df.plot(y=["close_t-1"], figsize=(18, 6))
         plt.show()
 
         print(f'Number of instances: {len(df)}')
