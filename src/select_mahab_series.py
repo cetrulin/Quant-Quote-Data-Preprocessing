@@ -24,6 +24,7 @@ config = {
     'resample': False,  # resampling done in a previous script
     'desired_length': 550,   # for mahab states
     'desired_abs_mean_tresh': 0.01,
+    'desired_abs_min_tresh': 0.00000000000001,
     'allowed_outliers_pct': 0.01,
     'ms_field': 'timestamp',  # time
     'dt_field': 'datetime',   # date
@@ -59,6 +60,8 @@ def get_pretraining_states(mahabset_df: pd.DataFrame, config: dict) -> dict:
     :param config:
     :return:
     """
+    mahabset_df = remove_non_trading_hours_minimised(df=mahabset_df)  # remove non trading hours
+
     # Generate close price returns and moving average to select the period with a mean close to 0
     log_ret = False  # otherwise percentual
     if log_ret:
@@ -95,6 +98,7 @@ def get_pretraining_states(mahabset_df: pd.DataFrame, config: dict) -> dict:
             print(f"Current selection from {rw['SMA_start_date']} to {rw[config['dt_field']]} with mean {sma_col}")
             mah_state = \
                 mahabset_df[(mahabset_df['SMA_start_date'].between(rw['SMA_start_date'], rw[config['dt_field']]))]
+
             if len(mah_state) > 1:  # avoid overwriting an state with another which len is 0 or 1
                 states_dict[i] = mah_state
                 states_dict[i].sort_index(ascending=True, inplace=True)
@@ -115,13 +119,23 @@ def identify_state(config: dict, mahabset_df: pd.DataFrame, sma_col: str, state_
         selected_df = selected_df[selected_df['roll_std'].max() == selected_df['roll_std']]
     elif state_id == 2:  # Select one negative (min)
         # get the min from a boundary. filter periods with 0 return at all. it may be due to lack of liquidity at s lvl
-        selected_df = mahabset_df[mahabset_df[sma_col + '_abs'] >= (config['desired_abs_mean_tresh'] / 3)]
+        selected_df = mahabset_df[mahabset_df[sma_col + '_abs'] >= (config['desired_abs_min_tresh'])]
         selected_df = selected_df[selected_df[sma_col].min() == selected_df[sma_col]]
     elif state_id == 3:  # Select one positive (max)
         selected_df = mahabset_df[mahabset_df[sma_col].max() == mahabset_df[sma_col]]
     else:
         assert False, "The trend/pattern for this state has not been specified"
     return selected_df
+
+
+def remove_non_trading_hours_minimised(df) -> pd.DataFrame:
+    trading_dates = pd.read_csv('trading_dates_Q11998_to_Q32021.csv')  # this list has format: dd/MM/yyyy
+    # inverting date format (hardcoded)
+    trading_dates = trading_dates.trading_dates.astype(str).apply(lambda x: x[6:10]+'-'+x[3:5]+'-'+x[:2])
+    df.index = pd.to_datetime(df.datetime)
+    df = df.between_time('09:31', '15:59')
+    df = df[df.index.astype(str).str[:10].isin(trading_dates)]
+    return df
 
 
 def remove_non_trading_hours(df, config: dict()) -> pd.DataFrame:
@@ -172,14 +186,18 @@ def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict, all_
             get_pretraining_states(mahabset_df=pd.read_csv(files[period][level][setid], sep=config['separator']),
                                    config=config)
         for k in states_dict.keys():
+            # non trading hours have been removed in get_pretraining_states
             state_filepath = \
                 os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}_{k}.csv'])
-            states_dict[k] = remove_non_trading_hours(df=states_dict[k], config=config)
+            states_dict[k] = \
+                remove_non_trading_hours(df=states_dict[k], config=config)  # for the sake of standarisation
+            assert len(states_dict[k]) > 1 , "Mahalanobis set too small"
             states_dict[k].to_csv(state_filepath, sep=';')
             all_files.append(state_filepath)
     else:
         set_filepath = os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}.csv'])
         df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config)
+        assert len(df) > 1, "Dataset set too small"
         df.to_csv(set_filepath, sep=';')
         all_files.append(set_filepath)
     return all_files
@@ -226,6 +244,8 @@ for yr in config['years_to_explore']:
                 # 2. Export all sets in a folder with a period number (like a seed)
                 Path(os.sep.join([config['output_path'], level, str(period_id)])).mkdir(parents=True, exist_ok=True)
                 for setid, setname in config['names_per_set'].items():
+                    a = level
+                    print(level)
                     files_for_indicators = \
                         parse_and_save(file_dict=files[period][level], setid=setid, setname=setname,
                                        config=config, all_files=files_for_indicators)
