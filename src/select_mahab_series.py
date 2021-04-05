@@ -93,9 +93,11 @@ def get_pretraining_states(mahabset_df: pd.DataFrame, config: dict) -> dict:
 
         for idx, rw in selected_df.iterrows():
             print(f"Current selection from {rw['SMA_start_date']} to {rw[config['dt_field']]} with mean {sma_col}")
-            states_dict[i] = \
+            mah_state = \
                 mahabset_df[(mahabset_df['SMA_start_date'].between(rw['SMA_start_date'], rw[config['dt_field']]))]
-            states_dict[i].sort_index(ascending=True, inplace=True)
+            if len(mah_state) > 1:  # avoid overwriting an state with another which len is 0 or 1
+                states_dict[i] = mah_state
+                states_dict[i].sort_index(ascending=True, inplace=True)
 
     return states_dict
 
@@ -112,7 +114,9 @@ def identify_state(config: dict, mahabset_df: pd.DataFrame, sma_col: str, state_
         # Filter by desired mean fpr the lateral movement (the one with greatest STDEV)
         selected_df = selected_df[selected_df['roll_std'].max() == selected_df['roll_std']]
     elif state_id == 2:  # Select one negative (min)
-        selected_df = mahabset_df[mahabset_df[sma_col].min() == mahabset_df[sma_col]]
+        # get the min from a boundary. filter periods with 0 return at all. it may be due to lack of liquidity at s lvl
+        selected_df = mahabset_df[mahabset_df[sma_col + '_abs'] >= (config['desired_abs_mean_tresh'] / 3)]
+        selected_df = selected_df[selected_df[sma_col].min() == selected_df[sma_col]]
     elif state_id == 3:  # Select one positive (max)
         selected_df = mahabset_df[mahabset_df[sma_col].max() == mahabset_df[sma_col]]
     else:
