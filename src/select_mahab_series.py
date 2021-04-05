@@ -191,7 +191,7 @@ def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict, all_
                 os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}_{k}.csv'])
             states_dict[k] = \
                 remove_non_trading_hours(df=states_dict[k], config=config)  # for the sake of standarisation
-            assert len(states_dict[k]) > 1 , "Mahalanobis set too small"
+            assert len(states_dict[k]) > 1, "Mahalanobis set too small"
             states_dict[k].to_csv(state_filepath, sep=';')
             all_files.append(state_filepath)
     else:
