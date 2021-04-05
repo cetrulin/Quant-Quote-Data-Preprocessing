@@ -70,7 +70,7 @@ indicators = ['sma','ema','wma','mom','stoch','macd' ,'rsi' ,'willr',
 sources = ['S&P500']
 # levels = ['1min-level', '5min-level', '10min-level', '15min-level', '30min-level', '1h-level']  # TODO
 levels = ['1s-level', '5s-level', '10s-level', '15s-level', '30s-level']
-modes = ['', 'indicators_best_and_times', 'indicators_fullset']  #  == 'indicators_best'
+modes = ['', 'indicators_best_and_times', 'indicators_fullset']  # == 'indicators_best'
 # sets = ['mahalanobis', 'dev', 'train'] #'mahalanobis', 'dev'] #, 'train']  # dates hardcoded later.
 
 
@@ -83,6 +83,7 @@ input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
 files_for_indicators = list(pd.read_csv('tmp/files_for_indicators.csv').files)
 
 for mode in modes:
+# if False:
     for file in files_for_indicators:
         level, period, setname = file.split(os.sep)[-3:]
         # if (int(period) > 1) & (level == '1s-level') & ('mahalanobis' in setname):
@@ -241,14 +242,13 @@ for mode in modes:
 
 # Print a List of commands to be outputed by the terminal to replace the labels to categorical
 files = list()
-for file in os.listdir(devsets_path):
-    #     if '.' not in file:
-    seed_folder = os.sep.join([devsets_path, file])
-    #         seed_files = os.listdir(seed_folder)
-    #         for sf in seed_files:
-    if '.arff' in file:  # sf:
-        #                 full_path = os.sep.join([devsets_path, file, sf])
-        full_path = \
-            os.sep.join([devsets_path, file]).replace('C:\\Users\\suare', '/mnt/c/Users/suare').replace('\\','/')
-        #                 print(full_path)
-        print("sed -i 's/^.*@attribute label numeric.*$/@attribute label {0, 1}/' " + full_path)
+for level in os.listdir(RESULT_PATH):
+    seed_folder = os.sep.join([RESULT_PATH, level])
+    if 'level' in level:
+        for seed in os.listdir(RESULT_PATH+os.sep+level):
+            for file in os.listdir(RESULT_PATH+os.sep+level+os.sep+seed):
+                if '.arff' in file:
+                    full_path = \
+                        os.sep.join([RESULT_PATH, level, seed, file]).\
+                            replace('C:\\Users\\suare', '/mnt/c/Users/suare').replace('\\', '/')
+                    print("sed -i 's/^.*@attribute label numeric.*$/@attribute label {0, 1}/' " + full_path)
