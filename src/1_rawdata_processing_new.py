@@ -788,7 +788,8 @@ def iterate_through_periods(eft, lvl, years, n_periods, config):
             if (lvl == '1h') | (lvl == '1d'):
                 periods = 'yearly'
             else:
-                periods = 'month' if lvl == '1s' else 'quarter' if 'min' not in lvl else 'iteration'
+                # periods = 'month' if lvl == '1s' else 'quarter' if 'min' not in lvl else 'iteration'
+                periods = 'quarter' if lvl == '1s' else 'quarter' if 'min' not in lvl else 'iteration'
 
             logging.info(f'Starting {periods}: {str((p + 1))}')
             create_dataset(config=config, level=lvl, eft_symbol=eft, year=yr,
@@ -829,8 +830,8 @@ def compute():
             else:
                 # Train & test
                 # For second level, iterate for every quarter. Monthly for 1s level due to memory related issues
-                n_periods = 12 if lvl == '1s' else 4 if 'min' not in lvl else 1
-                # n_periods = 4 if lvl == '1s' else 4 if 'min' not in lvl else 1  # comment out if running entire quarters for 1s
+                # n_periods = 12 if lvl == '1s' else 4 if 'min' not in lvl else 1
+                n_periods = 4 if lvl == '1s' else 4 if 'min' not in lvl else 1  # comment out if running entire quarters for 1s
                 if (lvl == '1h') | (lvl == '1d'):
                     n_periods = 1
                 iterate_through_periods(eft, lvl, config['years'][config['order']], n_periods, config)
