@@ -214,61 +214,104 @@ def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict, all_
     return all_files
 
 
-period_id = 1
-mahab_m = '07'
-dev_m = '10'
-first = True
-files = dict()
-files_for_indicators = list()
+def compute(files: dict, periods: (), period_id: int, files_for_indicators: list, config: dict) -> (dict, list):
+    """
+    This function orchestrates the whole process in both levels
+    """
+    period, mahab_period, dev_period = periods
 
-for yr in config['years_to_explore']:
-    # this will need to be refactored/changed (maybe to an iterator) for min level
-    for q_month in ['01', '04', '07', '10']:  # just for s level
+    # 1. it picks a period and changes the name.
+    for level in os.listdir(config['path']):
+        files[period][level] = dict()
+        if config['lvl_str'] in level:
+            print('=========='+level+'\n'+'==========')
+            lvl_path = config['path'] + level + os.sep + config['symbol_name']
+            for file in os.listdir(lvl_path):  # all of these loops are not efficient at all
+                if '.csv' in file:
+                    if mahab_period in file:
+                        files[period][level]['mah'] = lvl_path + os.sep + file
+                    if dev_period in file:
+                        files[period][level]['dev'] = lvl_path + os.sep + file
+                    if period in file:
+                        files[period][level]['train'] = lvl_path + os.sep + file
 
-        # 2. it picks the prior period as a devset
-        if not first:
-            mahab_period = dev_period
-            dev_period = period
-        else:
-            mahab_period = f'{int(yr)-1}-{mahab_m}'
-            dev_period = f'{int(yr)-1}-{dev_m}'
-            first = False
-        period = yr + '-' + q_month
+            # 2. Export all sets in a folder with a period number (like a seed)
+            Path(os.sep.join([config['output_path'], level, str(period_id)])).mkdir(parents=True, exist_ok=True)
+            for setid, setname in config['names_per_set'].items():
+                print(f'set id: {setid}')
+                files_for_indicators = \
+                    parse_and_save(file_dict=files[period][level], setid=setid, setname=setname,
+                                   config=config, all_files=files_for_indicators)
+
+            # Debug
+            print(files[period][level]['dev'])
+            print(os.sep.join([config['output_path'], level, str(period_id),
+                               f'{config["symbol"]}_devset.csv']))
+    return files, files_for_indicators
+
+
+##########################################################
+# Specific handling for second or minute level frequencies
+
+
+def compute_seconds() -> (pd.DataFrame, list):
+    mahab_m = '07'
+    dev_m = '10'
+    first = True
+    period_id = 1
+    files = dict()
+    files_for_indicators = list()
+
+    for yr in config['years_to_explore']:
+        # this will need to be refactored/changed (maybe to an iterator) for min level
+        for q_month in ['01', '04', '07', '10']:  # just for s level
+            # it picks the prior period as a devset
+            if not first:
+                mahab_period = dev_period
+                dev_period = period
+            else:
+                mahab_period = f'{int(yr) - 1}-{mahab_m}'
+                dev_period = f'{int(yr) - 1}-{dev_m}'
+                first = False
+            period = yr + '-' + q_month
+
+            # Compute periods in order
+            files, files_for_indicators = \
+                compute(files=files, periods=(period, mahab_period, dev_period), period_id=period_id,
+                        files_for_indicators=files_for_indicators, config=config)
+            period_id = period_id + 1
+    return files, files_for_indicators
+
+
+def compute_minutes() -> (pd.DataFrame, list):
+    files = dict()
+    files_for_indicators = list()
+    period_id = 1
+
+    for yr in config['years_to_explore']:
+        period = str(yr)
+        dev_period = str(int(yr) - 1)
+        mahab_period = str(int(yr) - 2)
         files[period] = dict()
 
-        # change of period till here
-
-        # 1. it picks a period and changes the name.
-        for level in os.listdir(config['path']):
-            files[period][level] = dict()
-            if config['lvl_str'] in level:
-                lvl_path = config['path'] + level + os.sep + config['symbol_name']
-                for file in os.listdir(lvl_path):  # all of these loops are not efficient at all
-                    if '.csv' in file:
-                        if mahab_period in file:
-                            files[period][level]['mah'] = lvl_path + os.sep + file
-                        if dev_period in file:
-                            files[period][level]['dev'] = lvl_path + os.sep + file
-                        if period in file:
-                            files[period][level]['train'] = lvl_path + os.sep + file
-
-                # 2. Export all sets in a folder with a period number (like a seed)
-                Path(os.sep.join([config['output_path'], level, str(period_id)])).mkdir(parents=True, exist_ok=True)
-                for setid, setname in config['names_per_set'].items():
-                    a = level
-                    print(level)
-                    files_for_indicators = \
-                        parse_and_save(file_dict=files[period][level], setid=setid, setname=setname,
-                                       config=config, all_files=files_for_indicators)
-
-                # Debug
-                print(files[period][level]['dev'])
-                print(os.sep.join([config['output_path'], level, str(period_id),
-                                   f'{config["symbol"]}_devset.csv']))
-
+        # Compute periods in order
+        files, files_for_indicators = \
+            compute(files=files, periods=(period, mahab_period, dev_period), period_id=period_id,
+                    files_for_indicators=files_for_indicators, config=config)
         period_id = period_id + 1
+    return files, files_for_indicators
 
-# Let's generate /txt files too in a TMP location
-pd.DataFrame({'files': files_for_indicators}).to_csv('tmp/files_for_indicators.csv')
-# Then trigger from here the whole convertion (technical indicators).
+
+compute_func = {
+    's': compute_seconds,
+    'm': compute_minutes,
+}
+
+if __name__ == "__main__":
+    # Difference handling periods at the second and minutes level due to data granularity and volume
+    file_dict, file_list = compute_func[config['lvl_str']]()
+
+    # Let's generate /txt files too in a TMP location
+    pd.DataFrame({'files': file_list}).to_csv('tmp/files_for_indicators.csv')
+    # Then trigger from here the whole convertion (technical indicators).
 
