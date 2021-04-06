@@ -68,16 +68,23 @@ indicators = ['sma','ema','wma','mom','stoch','macd' ,'rsi' ,'willr',
 
 # Start of script
 sources = ['S&P500']
-# levels = ['1min-level', '5min-level', '10min-level', '15min-level', '30min-level', '1h-level']  # TODO
-levels = ['1s-level', '5s-level', '10s-level', '15s-level', '30s-level']
+
 modes = ['', 'indicators_best_and_times', 'indicators_fullset']  # == 'indicators_best'
 # sets = ['mahalanobis', 'dev', 'train'] #'mahalanobis', 'dev'] #, 'train']  # dates hardcoded later.
 
 
 # Paths for symbols
 RESULT_PATH = os.sep.join(['C:', 'Users', 'suare', 'PycharmProjects', 'QuantQuoteDataPreprocessing', 'out'])
-devsets_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
-input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
+
+# ec level
+# levels = ['1s-level', '5s-level', '10s-level', '15s-level', '30s-level']
+# devsets_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
+# input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
+
+# Min level
+levels = ['1min-level', '5min-level', '10min-level', '15min-level', '30min-level', '1h-level']  # TODO
+devsets_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes\\'
+input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes\\'
 
 # Load files from TMP folder
 files_for_indicators = list(pd.read_csv('tmp/files_for_indicators.csv').files)

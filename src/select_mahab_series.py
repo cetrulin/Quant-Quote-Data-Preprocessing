@@ -43,11 +43,13 @@ config = {
     'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
     'name': 'spy-minutes',
     'lvl_str': 'm',
+    'desired_abs_mean_tresh': 0.01,
+    # 'lvl_str': 'h',
+    # 'desired_abs_mean_tresh': 1,
     'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
     'resample': True,  # resampling done in a previous script
     'ms_field': 'timestamp',  # time
     'dt_field': 'datetime',   # date
-    'desired_abs_mean_tresh': 0.01,
     'desired_abs_min_tresh': 0.00000000000001,
     'allowed_outliers_pct': 0.01,
     'prefix': ''
@@ -194,8 +196,7 @@ def parse_and_save(file_dict: dict, all_files_dict: dict(), level: str, period_i
     file_path = file_dict[setid]
     if setid == 'mah':
         # For the mahalanobis set, it creates a moving average of x examples over the previous period to the devset.
-        states_dict = get_pretraining_states(mahabset_df=pd.read_csv(all_files_dict[period][level][setid],
-                                                                     sep=config['separator']),
+        states_dict = get_pretraining_states(mahabset_df=pd.read_csv(file_path, sep=config['separator']),
                                              config=config)
         for k in states_dict.keys():
             # non trading hours have been removed in get_pretraining_states
@@ -208,6 +209,7 @@ def parse_and_save(file_dict: dict, all_files_dict: dict(), level: str, period_i
             all_files.append(state_filepath)
     else:
         set_filepath = os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}.csv'])
+        print(file_path)
         df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config, level=level)
         assert len(df) > 1, "Dataset set too small"
         df.to_csv(set_filepath, sep=';')
@@ -309,6 +311,7 @@ def compute_minutes() -> (pd.DataFrame, list):
 compute_func = {
     's': compute_seconds,
     'm': compute_minutes,
+    'h': compute_minutes,
 }
 
 if __name__ == "__main__":
