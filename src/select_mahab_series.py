@@ -36,17 +36,18 @@ config = {
     # 'allowed_outliers_pct': 0.01,
     # 'pattern': 'csv',  # no pattern needed here by 05/04/2020
     # 'prefix': 'table_'
+    #### get largets and get smallest applied to 1 (min and maxs)
 
     # ############ For minute level
-    # 'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
-    #                      '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
-    'years_to_explore': ['2020'],
+    'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
+                         '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+    # 'years_to_explore': ['2020'],
     'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
     'name': 'spy-minutes',
-    'lvl_str': 'm',
-    'desired_abs_mean_tresh': 0.01,
-    # 'lvl_str': 'h',
-    # 'desired_abs_mean_tresh': 1,
+    # 'lvl_str': 'm',
+    # 'desired_abs_mean_tresh': 0.1,
+    'lvl_str': 'h',
+    'desired_abs_mean_tresh': 1,
     'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
     'resample': True,  # resampling done in a previous script
     'ms_field': 'timestamp',  # time
@@ -113,16 +114,20 @@ def get_pretraining_states(mahabset_df: pd.DataFrame, config: dict) -> dict:
             mah_state = \
                 mahabset_df[(mahabset_df['SMA_start_date'].between(rw['SMA_start_date'], rw[config['dt_field']]))]
 
-            if len(mah_state) > 1:  # avoid overwriting an state with another which len is 0 or 1
+            # avoid overwriting an state with another which len is <=35 (it has to be greater because of the indicators)
+            if len(mah_state) >= 35:
                 states_dict[i] = mah_state
                 states_dict[i].sort_index(ascending=True, inplace=True)
 
+    assert len(states_dict) == 3, f"State missing or diff than 3 states? states ok:{states_dict.keys()}"
     return states_dict
 
 
 def identify_state(config: dict, mahabset_df: pd.DataFrame, sma_col: str, state_id: int) -> pd.DataFrame:
     """
     This function identifies the last row of a mahab state depending on a logic defined manually for that state id.
+    Values 35, 20 and 20 were given manually to be able to have enough records hourly for all mahab states.
+        These have been left as values by default after.
     """
     if state_id == 1:  # Select one close to 0 (the closest)
         # Select one close to 0
@@ -130,13 +135,19 @@ def identify_state(config: dict, mahabset_df: pd.DataFrame, sma_col: str, state_
         selected_df = mahabset_df[mahabset_df[sma_col + '_abs'] <= config['desired_abs_mean_tresh']]
         # selected_df = selected_df[selected_df[sma_col + '_abs'].max() == selected_df[sma_col + '_abs']]
         # Filter by desired mean fpr the lateral movement (the one with greatest STDEV)
-        selected_df = selected_df[selected_df['roll_std'].max() == selected_df['roll_std']]
+        # selected_df = selected_df[selected_df['roll_std'].max() == selected_df['roll_std']]
+        # inst.of max, t.g.m.
+        selected_df = selected_df[selected_df['roll_std'].isin(list(selected_df['roll_std'].nlargest(35)))]
     elif state_id == 2:  # Select one negative (min)
         # get the min from a boundary. filter periods with 0 return at all. it may be due to lack of liquidity at s lvl
         selected_df = mahabset_df[mahabset_df[sma_col + '_abs'] >= (config['desired_abs_min_tresh'])]
-        selected_df = selected_df[selected_df[sma_col].min() == selected_df[sma_col]]
+        # selected_df = selected_df[selected_df[sma_col].min() == selected_df[sma_col]]
+        # inst.of min, to get many
+        selected_df = selected_df[selected_df[sma_col].isin(list(selected_df[sma_col].nsmallest(20)))]
     elif state_id == 3:  # Select one positive (max)
-        selected_df = mahabset_df[mahabset_df[sma_col].max() == mahabset_df[sma_col]]
+        # selected_df = mahabset_df[mahabset_df[sma_col].nlargest(3) == mahabset_df[sma_col]]
+        # inst.of max, to get many
+        selected_df = mahabset_df[mahabset_df[sma_col].isin(list(mahabset_df[sma_col].nlargest(20)))]
     else:
         assert False, "The trend/pattern for this state has not been specified"
     return selected_df
@@ -205,14 +216,14 @@ def parse_and_save(file_dict: dict, level: str, period_id: int,
                 os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}_{k}.csv'])
             states_dict[k] = \
                 remove_non_trading_hours(df=states_dict[k], config=config, level=level)  # for the sake of standarisation
-            assert len(states_dict[k]) > 1, "Mahalanobis set too small"
+            assert len(states_dict[k]) >= 35, "Mahalanobis set too small (must be >40 for technical indicators)"
             states_dict[k].to_csv(state_filepath, sep=';')
             all_files.append(state_filepath)
     else:
         set_filepath = os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}.csv'])
         print(file_path)
         df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config, level=level)
-        assert len(df) > 1, "Dataset set too small"
+        assert len(df) >=35 , "Dataset set too small (must be >=35 for technical indicators)"
         df.to_csv(set_filepath, sep=';')
         all_files.append(set_filepath)
     return all_files
@@ -322,6 +333,6 @@ if __name__ == "__main__":
     all_files_dict, file_list = compute_func[config['lvl_str']]()
 
     # Let's generate /txt files too in a TMP location
-    pd.DataFrame({'files': file_list}).to_csv('tmp/files_for_indicators.csv')
+    pd.DataFrame({'files': file_list}).to_csv(f'tmp/files_for_indicators_lvl-{config["lvl_str"]}.csv')
     # Then trigger from here the whole convertion (technical indicators).
 
