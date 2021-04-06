@@ -38,8 +38,9 @@ config = {
     # 'prefix': 'table_'
 
     # ############ For minute level
-    'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
-                         '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+    # 'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
+    #                      '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+    'years_to_explore': ['2020'],
     'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
     'name': 'spy-minutes',
     'lvl_str': 'm',
@@ -191,7 +192,7 @@ def remove_non_trading_hours(df, config: dict(), level: str = None) -> pd.DataFr
     return df
 
 
-def parse_and_save(file_dict: dict, all_files_dict: dict(), level: str, period_id: int, period: str,
+def parse_and_save(file_dict: dict, level: str, period_id: int,
                    setid: str, setname: str, config: dict, all_files: list()) -> list():
     file_path = file_dict[setid]
     if setid == 'mah':
@@ -229,7 +230,7 @@ def compute(files: dict, periods: (), period_id: int, files_for_indicators: list
         files[period][level] = dict()
 
         # Process second and minute level data. For min level, filter only files with pattern (as there are many others)
-        if config['lvl_str'] in level:
+        if config['lvl_str'] in level and '.' not in level:  # and '30' in level:  # IMP!! comment last condition out
             print('=========='+level+'\n'+'==========')
             lvl_path = config['path'] + level + os.sep + config['symbol_name']
             for file in os.listdir(lvl_path):  # all of these loops are not efficient at all
@@ -246,8 +247,8 @@ def compute(files: dict, periods: (), period_id: int, files_for_indicators: list
             for setid, setname in config['names_per_set'].items():
                 print(f'set id: {setid}')
                 files_for_indicators = \
-                    parse_and_save(file_dict=files[period][level], all_files_dict=files,
-                                   level=level, period_id=period_id, period=period, setid=setid, setname=setname,
+                    parse_and_save(file_dict=files[period][level],
+                                   level=level, period_id=period_id, setid=setid, setname=setname,
                                    config=config, all_files=files_for_indicators)
             # Debug
             print(files[period][level]['dev'])
@@ -300,10 +301,12 @@ def compute_minutes() -> (pd.DataFrame, list):
         mahab_period = str(int(yr) - 2)
         files[period] = dict()
 
+        # if period_id == 6:
         # Compute periods in order
         files, files_for_indicators = \
             compute(files=files, periods=(period, mahab_period, dev_period), period_id=period_id,
                     files_for_indicators=files_for_indicators, config=config)
+
         period_id = period_id + 1
     return files, files_for_indicators
 
