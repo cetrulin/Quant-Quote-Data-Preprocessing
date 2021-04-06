@@ -69,30 +69,30 @@ indicators = ['sma','ema','wma','mom','stoch','macd' ,'rsi' ,'willr',
 # Start of script
 sources = ['S&P500']
 
-modes = ['', 'indicators_best_and_times', 'indicators_fullset']  # == 'indicators_best'
-# sets = ['mahalanobis', 'dev', 'train'] #'mahalanobis', 'dev'] #, 'train']  # dates hardcoded later.
-
+# modes = ['', 'indicators_best_and_times', 'indicators_fullset']  # == 'indicators_best'
+modes = ['']  # let's avoid creating datasets that won't be used
 
 # Paths for symbols
 RESULT_PATH = os.sep.join(['C:', 'Users', 'suare', 'PycharmProjects', 'QuantQuoteDataPreprocessing', 'out'])
 
-# ec level
-# levels = ['1s-level', '5s-level', '10s-level', '15s-level', '30s-level']
+# Sec level
 # devsets_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
 # input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds\\'
+# files_for_indicators = list(pd.read_csv('tmp/files_for_indicators_lvl-s.csv').files) # Load files from TMP folder
 
 # Min level
-levels = ['1min-level', '5min-level', '10min-level', '15min-level', '30min-level', '1h-level']  # TODO
 devsets_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes\\'
 input_path = 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes\\'
-
-# Load files from TMP folder
-files_for_indicators = list(pd.read_csv('tmp/files_for_indicators.csv').files)
+files_for_indicators_h = pd.read_csv('tmp/files_for_indicators_lvl-h.csv')  # Load files from TMP folder
+files_for_indicators_m = pd.read_csv('tmp/files_for_indicators_lvl-m.csv')
+files_for_indicators = list(pd.concat([files_for_indicators_h, files_for_indicators_m]).files)
+print(files_for_indicators)
 
 for mode in modes:
-# if False:
+    # if False:
     for file in files_for_indicators:
         level, period, setname = file.split(os.sep)[-3:]
+        # if '30min' in level and period == '6' and 'maha' in setname and '3' in setname:  # specific set
         # if (int(period) > 1) & (level == '1s-level') & ('mahalanobis' in setname):
         setname = setname.replace('.csv', '')
         #         for level in levels:
@@ -232,8 +232,8 @@ for mode in modes:
 
         # Now plot close price and volume overtime.
         # df.set_index('datetime', drop=True, inplace=False)\
-        df.plot(y=["close_t-1"], figsize=(18, 6))
-        plt.show()
+        # df.plot(y=["close_t-1"], figsize=(18, 6))
+        # plt.show()
 
         print(f'Number of instances: {len(df)}')
         # Printing classes distributions
@@ -256,6 +256,6 @@ for level in os.listdir(RESULT_PATH):
             for file in os.listdir(RESULT_PATH+os.sep+level+os.sep+seed):
                 if '.arff' in file:
                     full_path = \
-                        os.sep.join([RESULT_PATH, level, seed, file]).\
+                        os.sep.join([RESULT_PATH, level, seed, file]). \
                             replace('C:\\Users\\suare', '/mnt/c/Users/suare').replace('\\', '/')
                     print("sed -i 's/^.*@attribute label numeric.*$/@attribute label {0, 1}/' " + full_path)
