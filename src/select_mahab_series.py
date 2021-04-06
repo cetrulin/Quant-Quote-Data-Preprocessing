@@ -7,39 +7,50 @@ from matplotlib import pyplot as plt
 from shutil import copyfile
 
 config = {
-    'name': 'spy-seconds',
-    'lvl_str': 's',
-    'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
-
-    # ############ For sec level
-    'years_to_explore': ['2016', '2017', '2018', '2019', '2020'],
+    # General
     'symbol': 'spy',
     'symbol_name': 'S&P500',
     'category': {'unespecified': ['spy']},  # 'gld', 'spy','xle', 'emb','dia', 'qqq', 'ewp'
-    # 'desired_abs_mean_tresh': 0.00000000005,
-    'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds',
-    'prefix': 'table_',
     'extension': '.csv',
     'separator': ';',
-    'resample': False,  # resampling done in a previous script
     'desired_length': 550,   # for mahab states
-    'desired_abs_mean_tresh': 0.01,
-    'desired_abs_min_tresh': 0.00000000000001,
-    'allowed_outliers_pct': 0.01,
-    'ms_field': 'timestamp',  # time
-    'dt_field': 'datetime',   # date
     'cols': ['open', 'high', 'low', 'close', 'volume', 'datetime', 'gap', 'timestamp'],
     'names_per_set': {
         'dev': 'devset',
         'train': 'train',
         'mah': 'mahalanobis_state'
-    }
+    },
     # 'specific_period': True,
-    # 'period': '202006'   # , '202006']
-    #
+    # 'period': '202006'   # , '202006']},
+
     # ############ For sec level
-    # For minute level
-    # TODO IMP
+    # 'years_to_explore': ['2016', '2017', '2018', '2019', '2020'],
+    # 'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds',
+    # 'name': 'spy-seconds',
+    # 'lvl_str': 's',
+    # 'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
+    # 'resample': False,  # resampling done in a previous script
+    # 'ms_field': 'timestamp',  # time
+    # 'dt_field': 'datetime',   # date
+    # 'desired_abs_mean_tresh': 0.01,
+    # 'desired_abs_min_tresh': 0.00000000000001,
+    # 'allowed_outliers_pct': 0.01,
+    # 'prefix': 'table_'
+
+    # ############ For minute level
+    'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
+                         '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+    'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
+    'name': 'spy-minutes',
+    'lvl_str': 'm',
+    'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
+    'resample': True,  # resampling done in a previous script
+    'ms_field': 'time',  # timestamp
+    'dt_field': 'date',   # datetime
+    'desired_abs_mean_tresh': 0.01,
+    'desired_abs_min_tresh': 0.00000000000001,
+    'allowed_outliers_pct': 0.01,
+    'prefix': ''
 }
 
 
