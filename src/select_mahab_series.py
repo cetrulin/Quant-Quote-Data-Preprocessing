@@ -23,34 +23,34 @@ config = {
     },
 
     # ############ For sec level
-    'years_to_explore': ['2016', '2017', '2018', '2019', '2020'],
-    'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds',
-    'name': 'spy-seconds',
-    'lvl_str': 's',
+    # 'years_to_explore': ['2016', '2017', '2018', '2019', '2020'],
+    # 'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds',
+    # 'name': 'spy-seconds',
+    # 'lvl_str': 's',
+    # 'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
+    # 'resample': False,  # resampling done in a previous script
+    # 'ms_field': 'timestamp',  # time
+    # 'dt_field': 'datetime',   # date
+    # 'desired_abs_mean_tresh': 0.01,
+    # 'desired_abs_min_tresh': 0.00000000000001,
+    # 'allowed_outliers_pct': 0.01,
+    # 'pattern': 'csv',  # no pattern needed here by 05/04/2020
+    # 'prefix': 'table_'
+
+    # ############ For minute level
+    'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
+                         '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+    'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
+    'name': 'spy-minutes',
+    'lvl_str': 'm',
     'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
-    'resample': False,  # resampling done in a previous script
+    'resample': True,  # resampling done in a previous script
     'ms_field': 'timestamp',  # time
     'dt_field': 'datetime',   # date
     'desired_abs_mean_tresh': 0.01,
     'desired_abs_min_tresh': 0.00000000000001,
     'allowed_outliers_pct': 0.01,
-    'pattern': 'csv',  # no pattern needed here by 05/04/2020
-    'prefix': 'table_'
-
-    # ############ For minute level
-    # 'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
-    #                      '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
-    # 'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
-    # 'name': 'spy-minutes',
-    # 'lvl_str': 'm',
-    # 'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
-    # 'resample': True,  # resampling done in a previous script
-    # 'ms_field': 'time',  # timestamp
-    # 'dt_field': 'date',   # datetime
-    # 'desired_abs_mean_tresh': 0.01,
-    # 'desired_abs_min_tresh': 0.00000000000001,
-    # 'allowed_outliers_pct': 0.01,
-    # 'prefix': ''
+    'prefix': ''
 }
 
 
@@ -149,7 +149,7 @@ def remove_non_trading_hours_minimised(df) -> pd.DataFrame:
     return df
 
 
-def remove_non_trading_hours(df, config: dict()) -> pd.DataFrame:
+def remove_non_trading_hours(df, config: dict(), level: str = None) -> pd.DataFrame:
     # Parse cols, dates and sort
     # this may be useful at minute level
     # df['date'] = pd.to_datetime(df['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
@@ -202,13 +202,13 @@ def parse_and_save(file_dict: dict, all_files_dict: dict(), level: str, period_i
             state_filepath = \
                 os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}_{k}.csv'])
             states_dict[k] = \
-                remove_non_trading_hours(df=states_dict[k], config=config)  # for the sake of standarisation
+                remove_non_trading_hours(df=states_dict[k], config=config, level=level)  # for the sake of standarisation
             assert len(states_dict[k]) > 1, "Mahalanobis set too small"
             states_dict[k].to_csv(state_filepath, sep=';')
             all_files.append(state_filepath)
     else:
         set_filepath = os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_{setname}.csv'])
-        df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config)
+        df = remove_non_trading_hours(df=pd.read_csv(file_path, sep=config['separator']), config=config, level=level)
         assert len(df) > 1, "Dataset set too small"
         df.to_csv(set_filepath, sep=';')
         all_files.append(set_filepath)
