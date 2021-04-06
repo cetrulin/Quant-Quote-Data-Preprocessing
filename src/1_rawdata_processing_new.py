@@ -351,7 +351,8 @@ def define_global_settings(output_path, quarter, selected, year, level, dev=Fals
     print(f'The level is: {level}')
 
     if dev or level == '1s':  #'s' in level: # monthly for all sec level due to lack of RAM in Windows # level == '1s':  # 1-second level
-        start_date, end_date = get_dates_month(year=year, month=quarter)
+        # start_date, end_date = get_dates_month(year=year, month=quarter)
+        start_date, end_date = get_dates_quarter(year, quarter)  # comment this out se 1s level covers a quarter instead
         year = str(year)
         quarter = str(quarter)
     elif 'h' in level:  # Hourly: 1h
@@ -407,7 +408,7 @@ def get_period(quarter, year):
 
 
 # In[]:
-def read_and_merge_collection(config, dates, symbol):
+def read_and_merge_collection(config, dates, symbol, level):
     # Create list of DFs
     dataframes = []
 
@@ -434,8 +435,9 @@ def read_and_merge_collection(config, dates, symbol):
             # new_df['datetime'] = new_df.date + ' T' + new_df.time
             # print(new_df['milliseconds'].head(5))
 
-            # parsing hardcoded integers hh:mm to milliseconds
-            new_df['milliseconds'] = new_df['milliseconds'].apply(lambda x: (int(str(x)[:-2])*60 + int(str(x)[-2:]))*60 * 1000)
+            if 's' not in level:
+                # parsing hardcoded integers hh:mm to milliseconds
+                new_df['milliseconds'] = new_df['milliseconds'].apply(lambda x: (int(str(x)[:-2])*60 + int(str(x)[-2:]))*60 * 1000)
 
             new_df = new_df.astype('double', copy=False)  # All values as Double
             new_df['datetime'] = pd.Timestamp(date)
@@ -454,21 +456,26 @@ def read_and_merge_collection(config, dates, symbol):
 
 
 # In[]:
-def apply_corrections(df):
+def apply_corrections(df, level):
     # Parse datetime at 00:00 to timestamp and multiply by 1000 to have milliseconds.
     # Then add raw timestamp with milliseconds from 00:00
-    df['timestamp'] = ((df.datetime.values.astype(np.int64) // 10 ** 9) * 1000) + df.milliseconds/1000
+    df['timestamp'] = ((df.datetime.values.astype(np.int64) // 10 ** 9) * 1000) + df.milliseconds
+
     # Timestamp in milliseconds to readable datetime
     df['timestamp_r'] = pd.to_datetime(df.timestamp, unit='ms')
+
     # Index dataframe by its actual readable timestamp and sort it
     df.index = df['timestamp_r']
     df = df.sort_index()
+    # df.groupby( [df.timestamp_r.dt.hour] ).count().plot()
+
     # df.drop also drops the selected column (if value=1) or rows (if =0) #df = df.drop(df.columns[[0]], 1)
     # df = df.drop('milliseconds', 1)
     # df = dfinal_columnsf.drop('datetime', 1)
     # Adjusting decimal point
-    for column in ['high', 'low', 'open', 'close']:
-        df[column] = df[column].apply(lambda x: x / 10000)
+    if 'min' not in level and 'h' not in level:
+        for column in ['high', 'low', 'open', 'close']:
+            df[column] = df[column].apply(lambda x: x / 10000)
     # Cast volume to integer
     # df.volume = df.volume.astype(int) # this may crash with some versions of Ta-Lib
     # Only keep market hours. Decide where should the cut-off be. I get data from 4am to 8pm...
@@ -733,11 +740,11 @@ def create_dataset(config, level, eft_symbol, year, quarter=None, dev=False):
     # Furthermore, a a real online incremental trading system wouldn't be able to apply the corrections and
     # it would have to deal with the noise as it is.
     # At the end I left it as it is because I can always delete the rows afterwards.
-    df = read_and_merge_collection(config, dates, symbol)
-    df = apply_corrections(df)
+    df = read_and_merge_collection(config, dates, symbol, level)
+    df = apply_corrections(df, level)
 
     logging.info(id + '  2/8 - Running tests')
-    if 'min' in level:
+    if 'min' in level or 'h' in level:
         run_tests_minutes(df, result_path, level, start_date, end_date)
     else:
         run_tests_seconds(df, result_path, level, start_date, end_date)
@@ -823,6 +830,7 @@ def compute():
                 # Train & test
                 # For second level, iterate for every quarter. Monthly for 1s level due to memory related issues
                 n_periods = 12 if lvl == '1s' else 4 if 'min' not in lvl else 1
+                # n_periods = 4 if lvl == '1s' else 4 if 'min' not in lvl else 1  # comment out if running entire quarters for 1s
                 if (lvl == '1h') | (lvl == '1d'):
                     n_periods = 1
                 iterate_through_periods(eft, lvl, config['years'][config['order']], n_periods, config)
