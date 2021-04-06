@@ -14,43 +14,43 @@ config = {
     'extension': '.csv',
     'separator': ';',
     'desired_length': 550,   # for mahab states
+    'pattern': '_no_missing_data',  # besides the name, gaps have been handled (the name it's a typo)
     'cols': ['open', 'high', 'low', 'close', 'volume', 'datetime', 'gap', 'timestamp'],
     'names_per_set': {
         'dev': 'devset',
         'train': 'train',
         'mah': 'mahalanobis_state'
     },
-    # 'specific_period': True,
-    # 'period': '202006'   # , '202006']},
 
     # ############ For sec level
-    # 'years_to_explore': ['2016', '2017', '2018', '2019', '2020'],
-    # 'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds',
-    # 'name': 'spy-seconds',
-    # 'lvl_str': 's',
-    # 'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
-    # 'resample': False,  # resampling done in a previous script
-    # 'ms_field': 'timestamp',  # time
-    # 'dt_field': 'datetime',   # date
-    # 'desired_abs_mean_tresh': 0.01,
-    # 'desired_abs_min_tresh': 0.00000000000001,
-    # 'allowed_outliers_pct': 0.01,
-    # 'prefix': 'table_'
-
-    # ############ For minute level
-    'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
-                         '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
-    'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
-    'name': 'spy-minutes',
-    'lvl_str': 'm',
+    'years_to_explore': ['2016', '2017', '2018', '2019', '2020'],
+    'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_seconds',
+    'name': 'spy-seconds',
+    'lvl_str': 's',
     'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
-    'resample': True,  # resampling done in a previous script
-    'ms_field': 'time',  # timestamp
-    'dt_field': 'date',   # datetime
+    'resample': False,  # resampling done in a previous script
+    'ms_field': 'timestamp',  # time
+    'dt_field': 'datetime',   # date
     'desired_abs_mean_tresh': 0.01,
     'desired_abs_min_tresh': 0.00000000000001,
     'allowed_outliers_pct': 0.01,
-    'prefix': ''
+    'pattern': 'csv',  # no pattern needed here by 05/04/2020
+    'prefix': 'table_'
+
+    # ############ For minute level
+    # 'years_to_explore': ['2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010',
+    #                      '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+    # 'output_path': 'C:\\Users\\suare\\data\\tmp\\spy_seeds_minutes',
+    # 'name': 'spy-minutes',
+    # 'lvl_str': 'm',
+    # 'path': 'C:\\Users\\suare\\data\\analysis\\quantquote\\',
+    # 'resample': True,  # resampling done in a previous script
+    # 'ms_field': 'time',  # timestamp
+    # 'dt_field': 'date',   # datetime
+    # 'desired_abs_mean_tresh': 0.01,
+    # 'desired_abs_min_tresh': 0.00000000000001,
+    # 'allowed_outliers_pct': 0.01,
+    # 'prefix': ''
 }
 
 
@@ -189,13 +189,14 @@ def remove_non_trading_hours(df, config: dict()) -> pd.DataFrame:
     return df
 
 
-def parse_and_save(file_dict: dict, setid: str, setname: str, config: dict, all_files: list()) -> list():
+def parse_and_save(file_dict: dict, all_files_dict: dict(), level: str, period_id: int, period: str,
+                   setid: str, setname: str, config: dict, all_files: list()) -> list():
     file_path = file_dict[setid]
     if setid == 'mah':
         # For the mahalanobis set, it creates a moving average of x examples over the previous period to the devset.
-        states_dict = \
-            get_pretraining_states(mahabset_df=pd.read_csv(files[period][level][setid], sep=config['separator']),
-                                   config=config)
+        states_dict = get_pretraining_states(mahabset_df=pd.read_csv(all_files_dict[period][level][setid],
+                                                                     sep=config['separator']),
+                                             config=config)
         for k in states_dict.keys():
             # non trading hours have been removed in get_pretraining_states
             state_filepath = \
@@ -219,15 +220,18 @@ def compute(files: dict, periods: (), period_id: int, files_for_indicators: list
     This function orchestrates the whole process in both levels
     """
     period, mahab_period, dev_period = periods
+    files[period] = dict()
 
     # 1. it picks a period and changes the name.
     for level in os.listdir(config['path']):
         files[period][level] = dict()
+
+        # Process second and minute level data. For min level, filter only files with pattern (as there are many others)
         if config['lvl_str'] in level:
             print('=========='+level+'\n'+'==========')
             lvl_path = config['path'] + level + os.sep + config['symbol_name']
             for file in os.listdir(lvl_path):  # all of these loops are not efficient at all
-                if '.csv' in file:
+                if '.csv' in file and config['pattern'] in file:
                     if mahab_period in file:
                         files[period][level]['mah'] = lvl_path + os.sep + file
                     if dev_period in file:
@@ -240,13 +244,13 @@ def compute(files: dict, periods: (), period_id: int, files_for_indicators: list
             for setid, setname in config['names_per_set'].items():
                 print(f'set id: {setid}')
                 files_for_indicators = \
-                    parse_and_save(file_dict=files[period][level], setid=setid, setname=setname,
+                    parse_and_save(file_dict=files[period][level], all_files_dict=files,
+                                   level=level, period_id=period_id, period=period, setid=setid, setname=setname,
                                    config=config, all_files=files_for_indicators)
-
             # Debug
             print(files[period][level]['dev'])
-            print(os.sep.join([config['output_path'], level, str(period_id),
-                               f'{config["symbol"]}_devset.csv']))
+            print(os.sep.join([config['output_path'], level, str(period_id), f'{config["symbol"]}_devset.csv']))
+
     return files, files_for_indicators
 
 
@@ -309,7 +313,7 @@ compute_func = {
 
 if __name__ == "__main__":
     # Difference handling periods at the second and minutes level due to data granularity and volume
-    file_dict, file_list = compute_func[config['lvl_str']]()
+    all_files_dict, file_list = compute_func[config['lvl_str']]()
 
     # Let's generate /txt files too in a TMP location
     pd.DataFrame({'files': file_list}).to_csv('tmp/files_for_indicators.csv')
