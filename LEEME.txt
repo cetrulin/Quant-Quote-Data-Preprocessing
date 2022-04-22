@@ -1,7 +1,0 @@
-LEEME
-
-El script 'Data_modeling_batch_quantquote.py' prepara los precios de quantquote al nivel deseado. Para ejecutarlo es necesario Python 2.7.
-
-Solo es necesario especificar los niveles, años a procesar, EFTs, y rutas donde leer y guardar los ficheros csv generados. Dichos parámetros deben ser específicados en el fichero 'config.yaml'. 
-
-Un segundo script une los CSVs para determinados periodos, escoge las columnas deseadas, y genera los .arff para MOA.
